@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+venv/
+.venv/
+env/
+*.mp3
+*.wav
+node_modules/
+.idea/
+.vscode/
