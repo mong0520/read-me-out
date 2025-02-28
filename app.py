@@ -2,14 +2,18 @@ import os
 import boto3
 import uuid
 import hashlib
-from flask import Flask, request, jsonify, send_file, render_template
+import json
+from flask import Flask, request, jsonify, send_file, render_template, redirect, url_for, session
 from flask_cors import CORS
 from dotenv import load_dotenv
+from authlib.integrations.flask_client import OAuth
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key')
 CORS(app)
 
 # Configure AWS Polly client
@@ -29,9 +33,104 @@ DEFAULT_RATE = 0.8
 AUDIO_DIR = os.path.join(app.static_folder, 'audio')
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
+# Configure Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Configure OAuth
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    client_kwargs={'scope': 'openid email profile'},
+)
+
+# User model
+class User(UserMixin):
+    def __init__(self, id, name, email, profile_pic):
+        self.id = id
+        self.name = name
+        self.email = email
+        self.profile_pic = profile_pic
+
+# User loader for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    if 'users' not in session:
+        return None
+    users = session['users']
+    if user_id not in users:
+        return None
+    user_data = users[user_id]
+    return User(
+        id=user_id,
+        name=user_data['name'],
+        email=user_data['email'],
+        profile_pic=user_data['profile_pic']
+    )
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/login')
+def login():
+    redirect_uri = url_for('authorize', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/authorize')
+def authorize():
+    token = google.authorize_access_token()
+    resp = google.get('userinfo')
+    user_info = resp.json()
+
+    # Create user dictionary if it doesn't exist
+    if 'users' not in session:
+        session['users'] = {}
+
+    # Save user info in session
+    user_id = user_info['id']
+    session['users'][user_id] = {
+        'name': user_info.get('name', ''),
+        'email': user_info.get('email', ''),
+        'profile_pic': user_info.get('picture', '')
+    }
+    session.modified = True
+
+    # Create user object and login
+    user = User(
+        id=user_id,
+        name=user_info.get('name', ''),
+        email=user_info.get('email', ''),
+        profile_pic=user_info.get('picture', '')
+    )
+    login_user(user)
+
+    return redirect('/')
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect('/')
+
+@app.route('/user')
+def get_user():
+    if current_user.is_authenticated:
+        return jsonify({
+            'authenticated': True,
+            'name': current_user.name,
+            'email': current_user.email,
+            'profile_pic': current_user.profile_pic
+        })
+    else:
+        return jsonify({'authenticated': False})
 
 def get_text_hash(text, voice_id=DEFAULT_VOICE, rate=DEFAULT_RATE):
     """Generate a hash for the text, voice and rate combination"""

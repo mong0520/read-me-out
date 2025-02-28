@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingElement = document.getElementById('loading');
     const statusElement = document.getElementById('status');
     const speedControl = document.getElementById('speed-control');
+    const userInfo = document.getElementById('user-info');
+    const userPic = document.getElementById('user-pic');
+    const userName = document.getElementById('user-name');
+    const loginContainer = document.getElementById('login-container');
 
     // Fixed voice
     const VOICE_ID = 'Ruth';
@@ -21,8 +25,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Check user authentication status
+    checkAuthStatus();
+
     // Audio player
     let audioPlayer = new Audio();
+
+    // Function to check authentication status
+    function checkAuthStatus() {
+        fetch('/user')
+            .then(response => response.json())
+            .then(data => {
+                if (data.authenticated) {
+                    // User is authenticated
+                    userPic.src = data.profile_pic;
+                    userName.textContent = data.name;
+                    userInfo.style.display = 'flex';
+                    loginContainer.style.display = 'none';
+                } else {
+                    // User is not authenticated
+                    userInfo.style.display = 'none';
+                    loginContainer.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error checking authentication status:', error);
+            });
+    }
 
     // Submit button event listener
     submitButton.addEventListener('click', function() {
