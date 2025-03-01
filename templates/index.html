@@ -3,21 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text-to-Speech with AWS Polly</title>
+    <title>Read Me Out - Text to Speech</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+    <div class="overlay"></div>
+
+    <!-- Hamburger Menu Button -->
+    <div class="hamburger-menu">
+        <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3>Read Me Out</h3>
+            <div class="close-sidebar">
+                <i class="fas fa-times"></i>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <ul class="sidebar-menu">
+                <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                <li class="auth-required"><a href="/dashboard"><i class="fas fa-book"></i> My Articles</a></li>
+            </ul>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header-container">
-            <h1>Text-to-Speech with AWS Polly</h1>
-            <div id="user-container" class="user-container">
-                <div id="user-info" class="user-info" style="display: none;">
-                    <img id="user-pic" class="user-pic" src="" alt="Profile picture">
-                    <span id="user-name"></span>
-                    <a href="/logout" class="logout-btn">Logout</a>
+            <h1>Read Me Out</h1>
+            <div class="user-container">
+                <div class="user-info">
+                    <div class="user-pic"></div>
+                    <div class="user-name"></div>
+                    <a href="#" id="logout-link" class="logout-btn">Logout</a>
                 </div>
-                <div id="login-container" class="login-container">
+                <div class="login-container">
                     <a href="/login" class="login-btn">
                         <i class="fab fa-google"></i> Sign in with Google
                     </a>
@@ -26,37 +53,33 @@
         </div>
 
         <div class="form-group">
-            <label for="text-input">Enter your text:</label>
-            <textarea id="text-input" placeholder="Type or paste your text here..."></textarea>
+            <label for="text-input">Enter text to convert to speech:</label>
+            <textarea id="text-input" rows="10" placeholder="Type or paste your text here..."></textarea>
         </div>
 
         <div class="form-group">
-            <label for="speed-control">Speech Speed: <span id="speed-value">80%</span></label>
-            <div class="speed-control-container">
-                <span class="speed-label">Slower</span>
-                <input type="range" id="speed-control" min="0.5" max="1.0" step="0.1" value="0.8">
-                <span class="speed-label">Normal</span>
+            <label for="speed-select">語音速度：</label>
+            <div class="speed-options">
+                <label class="speed-option">
+                    <input type="radio" name="speed" value="0.7" id="speed-slow">
+                    <span>慢</span>
+                </label>
+                <label class="speed-option">
+                    <input type="radio" name="speed" value="0.8" id="speed-medium">
+                    <span>稍慢</span>
+                </label>
+                <label class="speed-option">
+                    <input type="radio" name="speed" value="1.0" id="speed-normal" checked>
+                    <span>正常</span>
+                </label>
             </div>
         </div>
 
-        <div class="controls">
-            <button id="submit-button">Convert to Speech</button>
-            <div class="cache-info">
-                <span class="cache-icon" title="Caching enabled">💾</span>
-                <span class="cache-text">Caching enabled</span>
-            </div>
-        </div>
+        <button id="convert-btn" class="btn">Convert to Speech</button>
 
-        <div id="loading" class="loading">
-            <div class="loading-spinner"></div>
-            <p>Processing your text...</p>
-        </div>
+        <div id="status-message"></div>
 
-        <div id="status" class="status"></div>
-
-        <div id="text-display" class="text-display">
-            <!-- Processed text will appear here -->
-        </div>
+        <div id="text-display"></div>
     </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>

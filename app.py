@@ -8,6 +8,8 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -15,6 +17,32 @@ load_dotenv()
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key')
 CORS(app)
+
+# Configure database
+print(os.getenv('DATABASE_URL', 'mysql+pymysql://readmeout:readmeoutpass@localhost:3307/read_me_out'))
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql+pymysql://readmeout:readmeoutpass@localhost:3307/read_me_out')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Define database models
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.String(255), primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    profile_pic = db.Column(db.String(1024))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    articles = db.relationship('Article', backref='author', lazy=True)
+
+class Article(db.Model):
+    __tablename__ = 'articles'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(255), db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Configure AWS Polly client
 polly_client = boto3.client(
@@ -58,33 +86,20 @@ google = oauth.register(
     userinfo_endpoint='https://www.googleapis.com/oauth2/v3/userinfo'
 )
 
-# User model
-class User(UserMixin):
-    def __init__(self, id, name, email, profile_pic):
-        self.id = id
-        self.name = name
-        self.email = email
-        self.profile_pic = profile_pic
-
 # User loader for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
-    if 'users' not in session:
-        return None
-    users = session['users']
-    if user_id not in users:
-        return None
-    user_data = users[user_id]
-    return User(
-        id=user_id,
-        name=user_data['name'],
-        email=user_data['email'],
-        profile_pic=user_data['profile_pic']
-    )
+    return User.query.get(user_id)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    article_id = request.args.get('article_id')
+    return render_template('index.html', article_id=article_id)
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html')
 
 @app.route('/login')
 def login():
@@ -126,26 +141,26 @@ def authorize():
 
         print(f"Successfully retrieved user info: {user_info}")
 
-        # Initialize users dict in session if not exists
-        if 'users' not in session:
-            session['users'] = {}
-
-        # Save user info in session
+        # Check if user exists in database
         user_id = user_info['sub']
-        session['users'][user_id] = {
-            'name': user_info.get('name', user_info.get('given_name', '')),
-            'email': user_info.get('email', ''),
-            'profile_pic': user_info.get('picture', '')
-        }
-        session.modified = True
+        user = User.query.get(user_id)
 
-        # Create user object and login
-        user = User(
-            id=user_id,
-            name=user_info.get('name', ''),
-            email=user_info.get('email', ''),
-            profile_pic=user_info.get('picture', '')
-        )
+        if user:
+            # Update existing user
+            user.name = user_info.get('name', user_info.get('given_name', ''))
+            user.email = user_info.get('email', '')
+            user.profile_pic = user_info.get('picture', '')
+        else:
+            # Create new user
+            user = User(
+                id=user_id,
+                name=user_info.get('name', user_info.get('given_name', '')),
+                email=user_info.get('email', ''),
+                profile_pic=user_info.get('picture', '')
+            )
+            db.session.add(user)
+
+        db.session.commit()
         login_user(user)
 
         return redirect('/')
@@ -156,44 +171,113 @@ def authorize():
 @app.route('/logout')
 def logout():
     print("Logout route called")
-    print(f"Session before logout: {session}")
-
-    # Clear the specific user session data
-    if 'users' in session:
-        print("Clearing users from session")
-        session.pop('users')
-
-    # Also clear the Flask-Login session
     logout_user()
-
-    # Force session modification flag
-    session.modified = True
-
-    print(f"Session after logout: {session}")
-
-    # Redirect to home page
     return redirect('/')
 
 @app.route('/user')
 def get_user():
-    print(f"Session data: {session}")
-    if 'users' in session:
-        # Get the first user in the session (we only support one user for now)
-        users = session.get('users', {})
-        print(f"Users in session: {users}")
-        if users:
-            user_id = next(iter(users))
-            user = users[user_id]
-            print(f"Returning user info: {user}")
-            return jsonify({
-                'authenticated': True,
-                'name': user.get('name', ''),
-                'email': user.get('email', ''),
-                'profile_pic': user.get('profile_pic', '')
-            })
-
-    print("No authenticated user found in session")
+    if current_user.is_authenticated:
+        return jsonify({
+            'authenticated': True,
+            'id': current_user.id,
+            'name': current_user.name,
+            'email': current_user.email,
+            'profile_pic': current_user.profile_pic
+        })
     return jsonify({'authenticated': False})
+
+# Article API routes
+@app.route('/api/articles', methods=['GET'])
+@login_required
+def get_articles():
+    articles = Article.query.filter_by(user_id=current_user.id).order_by(Article.updated_at.desc()).all()
+    return jsonify([{
+        'id': article.id,
+        'title': article.title,
+        'content': article.content,
+        'created_at': article.created_at.isoformat(),
+        'updated_at': article.updated_at.isoformat()
+    } for article in articles])
+
+@app.route('/api/articles/<int:article_id>', methods=['GET'])
+@login_required
+def get_article(article_id):
+    article = Article.query.filter_by(id=article_id, user_id=current_user.id).first()
+    if not article:
+        return jsonify({'error': 'Article not found'}), 404
+
+    return jsonify({
+        'id': article.id,
+        'title': article.title,
+        'content': article.content,
+        'created_at': article.created_at.isoformat(),
+        'updated_at': article.updated_at.isoformat()
+    })
+
+@app.route('/api/articles', methods=['POST'])
+@login_required
+def create_article():
+    data = request.json
+    title = data.get('title', '')
+    content = data.get('content', '')
+
+    if not title or not content:
+        return jsonify({'error': 'Title and content are required'}), 400
+
+    article = Article(
+        user_id=current_user.id,
+        title=title,
+        content=content
+    )
+
+    db.session.add(article)
+    db.session.commit()
+
+    return jsonify({
+        'id': article.id,
+        'title': article.title,
+        'content': article.content,
+        'created_at': article.created_at.isoformat(),
+        'updated_at': article.updated_at.isoformat()
+    }), 201
+
+@app.route('/api/articles/<int:article_id>', methods=['PUT'])
+@login_required
+def update_article(article_id):
+    article = Article.query.filter_by(id=article_id, user_id=current_user.id).first()
+    if not article:
+        return jsonify({'error': 'Article not found'}), 404
+
+    data = request.json
+    title = data.get('title')
+    content = data.get('content')
+
+    if title:
+        article.title = title
+    if content:
+        article.content = content
+
+    db.session.commit()
+
+    return jsonify({
+        'id': article.id,
+        'title': article.title,
+        'content': article.content,
+        'created_at': article.created_at.isoformat(),
+        'updated_at': article.updated_at.isoformat()
+    })
+
+@app.route('/api/articles/<int:article_id>', methods=['DELETE'])
+@login_required
+def delete_article(article_id):
+    article = Article.query.filter_by(id=article_id, user_id=current_user.id).first()
+    if not article:
+        return jsonify({'error': 'Article not found'}), 404
+
+    db.session.delete(article)
+    db.session.commit()
+
+    return jsonify({'success': True})
 
 def get_text_hash(text, voice_id=DEFAULT_VOICE, rate=DEFAULT_RATE):
     """Generate a hash for the text, voice and rate combination"""
@@ -293,6 +377,10 @@ def synthesize_word():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Create database tables
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     # Run with HTTPS using provided certificate and key
