@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Read Me Out - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <!-- Hamburger Menu Button -->
+    <div class="hamburger-menu">
+        <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3>Read Me Out</h3>
+            <div class="close-sidebar">
+                <i class="fas fa-times"></i>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <ul class="sidebar-menu">
+                <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                <li class="auth-required"><a href="/dashboard"><i class="fas fa-book"></i> My Articles</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container dashboard-container">
+        <div class="header-container">
+            <h1>My Articles</h1>
+            <div class="user-container">
+                <div class="user-info">
+                    <div class="user-pic"></div>
+                    <div class="user-name"></div>
+                    <a href="#" id="logout-link" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </div>
+
+        <button id="new-article-btn" class="btn">
+            <i class="fas fa-plus"></i> New Article
+        </button>
+
+        <div id="articles-list" class="articles-list">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i> Loading articles...
+            </div>
+        </div>
+    </div>
+
+    <!-- Article Modal -->
+    <div id="article-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">New Article</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="article-form">
+                    <input type="hidden" id="article-id">
+                    <div class="form-group">
+                        <label for="article-title">Title:</label>
+                        <input type="text" id="article-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="article-content">Content:</label>
+                        <textarea id="article-content" rows="15" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" id="save-btn" class="btn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

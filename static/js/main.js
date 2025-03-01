@@ -26,11 +26,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const authRequiredItems = document.querySelectorAll('.auth-required');
 
     // DOM Elements - Text to Speech
-    const convertBtn = document.getElementById('convert-btn');
-    const textInput = document.getElementById('text-input');
     const speedOptions = document.querySelectorAll('input[name="speed"]');
     const textDisplay = document.getElementById('text-display');
     const statusMessage = document.getElementById('status-message');
+
+    // 保存當前加載的文章內容
+    let currentArticleContent = '';
+    let currentArticleId = '';
 
     // Initialize features
     checkAuthStatus();
@@ -128,33 +130,17 @@ document.addEventListener('DOMContentLoaded', function() {
      * Setup text-to-speech functionality
      */
     function setupTextToSpeech() {
-        // Skip if required elements don't exist
-        if (!convertBtn || !textInput || !textDisplay) {
-            return;
-        }
+        // 從 URL 參數加載文章
+        loadArticleFromUrl();
 
-        // Handle convert button click
-        convertBtn.addEventListener('click', function() {
-            console.log('Convert button clicked');
-            const text = textInput.value.trim();
-
-            // Validate input
-            if (!text) {
-                if (statusMessage) {
-                    statusMessage.textContent = 'Please enter some text.';
-                    statusMessage.className = 'error';
+        // 添加語音速度變更事件監聽器
+        speedOptions.forEach(option => {
+            option.addEventListener('change', function() {
+                // 如果有當前文章內容，則使用新的速度重新轉換
+                if (currentArticleContent) {
+                    processTextToSpeech(currentArticleContent);
                 }
-                return;
-            }
-
-            // Show converting status
-            if (statusMessage) {
-                statusMessage.textContent = 'Converting...';
-                statusMessage.className = 'info';
-            }
-
-            // Process text
-            processTextToSpeech(text);
+            });
         });
     }
 
@@ -173,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        console.log('Selected speech rate:', rate);
         return rate;
     }
 
@@ -181,6 +168,12 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {string} text - The text to convert
      */
     function processTextToSpeech(text) {
+        // 顯示處理中狀態
+        if (statusMessage) {
+            statusMessage.textContent = '正在轉換...';
+            statusMessage.className = 'info';
+        }
+
         // Split text into paragraphs
         const paragraphs = text.split(/\n+/).filter(p => p.trim() !== '');
 
@@ -210,121 +203,96 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get speech rate from radio buttons
         const rate = getSelectedRate();
-        console.log('Selected speech rate:', rate);
 
-        // Create full text audio for reference (but don't use it for paragraph clicks)
-        fetch('/api/synthesize', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: text,
-                rate: rate
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show success message
-                if (statusMessage) {
-                    statusMessage.textContent = 'Conversion complete!';
-                    statusMessage.className = 'success';
-                }
+        // Add click event to paragraphs - synthesize each paragraph separately
+        const paragraphElements = textDisplay.querySelectorAll('.paragraph');
+        paragraphElements.forEach(p => {
+            p.addEventListener('click', function() {
+                const paragraphText = this.dataset.text;
 
-                // Add click event to paragraphs - synthesize each paragraph separately
-                const paragraphElements = textDisplay.querySelectorAll('.paragraph');
-                paragraphElements.forEach(p => {
-                    p.addEventListener('click', function() {
-                        const paragraphText = this.dataset.text;
+                // Show paragraph is being processed
+                this.classList.add('processing');
 
-                        // Show paragraph is being processed
-                        this.classList.add('processing');
+                // Get current speech rate (it might have changed)
+                const currentRate = getSelectedRate();
 
-                        // Synthesize just this paragraph
-                        fetch('/api/synthesize', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                text: paragraphText,
-                                rate: rate
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // Remove processing class
-                                this.classList.remove('processing');
+                // Synthesize just this paragraph
+                fetch('/api/synthesize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: paragraphText,
+                        rate: currentRate
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove processing class
+                        this.classList.remove('processing');
 
-                                // Play just this paragraph
-                                const paragraphAudio = new Audio(data.audio_url);
-                                paragraphAudio.play();
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error synthesizing paragraph:', error);
-                            this.classList.remove('processing');
-                        });
-                    });
+                        // Play just this paragraph
+                        const paragraphAudio = new Audio(data.audio_url);
+                        paragraphAudio.play();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error synthesizing paragraph:', error);
+                    this.classList.remove('processing');
                 });
-
-                // Add click event to words
-                const wordElements = textDisplay.querySelectorAll('.word');
-                wordElements.forEach(word => {
-                    word.addEventListener('click', function(e) {
-                        e.stopPropagation(); // Prevent paragraph click
-
-                        const wordText = this.dataset.word;
-
-                        // Show word is being processed
-                        this.classList.add('processing');
-
-                        // Synthesize just this word
-                        fetch('/api/synthesize-word', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                word: wordText,
-                                rate: rate
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // Remove processing class
-                                this.classList.remove('processing');
-
-                                // Play just this word
-                                const wordAudio = new Audio(data.audio_url);
-                                wordAudio.play();
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error synthesizing word:', error);
-                            this.classList.remove('processing');
-                        });
-                    });
-                });
-            } else {
-                // Show error message
-                if (statusMessage) {
-                    statusMessage.textContent = 'Error: ' + data.error;
-                    statusMessage.className = 'error';
-                }
-            }
-        })
-        .catch(error => {
-            // Show error message
-            if (statusMessage) {
-                statusMessage.textContent = 'Error: ' + error.message;
-                statusMessage.className = 'error';
-            }
-            console.error('Error synthesizing speech:', error);
+            });
         });
+
+        // Add click event to words
+        const wordElements = textDisplay.querySelectorAll('.word');
+        wordElements.forEach(word => {
+            word.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent paragraph click
+
+                const wordText = this.dataset.word;
+
+                // Show word is being processed
+                this.classList.add('processing');
+
+                // Get current speech rate (it might have changed)
+                const currentRate = getSelectedRate();
+
+                // Synthesize just this word
+                fetch('/api/synthesize-word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        word: wordText,
+                        rate: currentRate
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove processing class
+                        this.classList.remove('processing');
+
+                        // Play just this word
+                        const wordAudio = new Audio(data.audio_url);
+                        wordAudio.play();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error synthesizing word:', error);
+                    this.classList.remove('processing');
+                });
+            });
+        });
+
+        // 顯示完成狀態
+        if (statusMessage) {
+            statusMessage.textContent = '轉換完成！點擊段落或單詞進行朗讀。';
+            statusMessage.className = 'success';
+        }
     }
 
     /**
@@ -334,8 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const urlParams = new URLSearchParams(window.location.search);
         const articleId = urlParams.get('article_id');
 
-        if (articleId && textInput) {
+        if (articleId) {
             console.log('Loading article from URL:', articleId);
+            currentArticleId = articleId;
 
             fetch(`/api/articles/${articleId}`)
                 .then(response => {
@@ -346,12 +315,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(article => {
                     console.log('Article loaded:', article.title);
-                    textInput.value = article.content;
 
-                    // Trigger conversion
-                    if (convertBtn) {
-                        convertBtn.click();
-                    }
+                    // 保存當前文章內容
+                    currentArticleContent = article.content;
+
+                    // 處理文章內容
+                    processTextToSpeech(currentArticleContent);
                 })
                 .catch(error => {
                     console.error('Error loading article:', error);
