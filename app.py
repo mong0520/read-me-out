@@ -39,17 +39,23 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # Configure OAuth
+app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
+app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+app.config['GOOGLE_DISCOVERY_URL'] = (
+    'https://accounts.google.com/.well-known/openid-configuration'
+)
+
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
-    client_id=os.getenv('GOOGLE_CLIENT_ID'),
-    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-    access_token_url='https://accounts.google.com/o/oauth2/token',
-    access_token_params=None,
-    authorize_url='https://accounts.google.com/o/oauth2/auth',
-    authorize_params=None,
-    api_base_url='https://www.googleapis.com/oauth2/v1/',
-    client_kwargs={'scope': 'openid email profile'},
+    client_id=app.config['GOOGLE_CLIENT_ID'],
+    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+    server_metadata_url=app.config['GOOGLE_DISCOVERY_URL'],
+    client_kwargs={
+        'scope': 'openid email profile'
+    },
+    redirect_uri='https://localhost:5001/authorize',
+    userinfo_endpoint='https://www.googleapis.com/oauth2/v3/userinfo'
 )
 
 # User model
@@ -87,50 +93,107 @@ def login():
 
 @app.route('/authorize')
 def authorize():
-    token = google.authorize_access_token()
-    resp = google.get('userinfo')
-    user_info = resp.json()
+    try:
+        token = google.authorize_access_token()
+        print(f"Received token: {token}")
 
-    # Create user dictionary if it doesn't exist
-    if 'users' not in session:
-        session['users'] = {}
+        # Use the token to get user info
+        try:
+            resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo', token=token)
+            print(f"API Response status: {resp.status_code}")
+            print(f"API Response headers: {resp.headers}")
+            print(f"API Response content: {resp.text}")
 
-    # Save user info in session
-    user_id = user_info['id']
-    session['users'][user_id] = {
-        'name': user_info.get('name', ''),
-        'email': user_info.get('email', ''),
-        'profile_pic': user_info.get('picture', '')
-    }
-    session.modified = True
+            if resp.status_code != 200:
+                print(f"Error response from Google API: {resp.text}")
+                return f"Failed to get user info: {resp.text}", 400
 
-    # Create user object and login
-    user = User(
-        id=user_id,
-        name=user_info.get('name', ''),
-        email=user_info.get('email', ''),
-        profile_pic=user_info.get('picture', '')
-    )
-    login_user(user)
+            user_info = resp.json()
+            print(f"Parsed user info: {user_info}")
+        except Exception as e:
+            print(f"Exception while getting user info: {str(e)}")
+            return f"Error getting user info: {str(e)}", 400
 
-    return redirect('/')
+        # Check if we have valid user info
+        if not user_info:
+            print(f"Invalid user info received: {user_info}")
+            return 'Invalid user info: empty response', 400
+
+        # Google OAuth2 uses 'sub' as the unique identifier, not 'id'
+        if 'sub' not in user_info:
+            print(f"Invalid user info: missing 'sub' field: {user_info}")
+            return 'Invalid user info: missing sub field', 400
+
+        print(f"Successfully retrieved user info: {user_info}")
+
+        # Initialize users dict in session if not exists
+        if 'users' not in session:
+            session['users'] = {}
+
+        # Save user info in session
+        user_id = user_info['sub']
+        session['users'][user_id] = {
+            'name': user_info.get('name', user_info.get('given_name', '')),
+            'email': user_info.get('email', ''),
+            'profile_pic': user_info.get('picture', '')
+        }
+        session.modified = True
+
+        # Create user object and login
+        user = User(
+            id=user_id,
+            name=user_info.get('name', ''),
+            email=user_info.get('email', ''),
+            profile_pic=user_info.get('picture', '')
+        )
+        login_user(user)
+
+        return redirect('/')
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/logout')
 def logout():
+    print("Logout route called")
+    print(f"Session before logout: {session}")
+
+    # Clear the specific user session data
+    if 'users' in session:
+        print("Clearing users from session")
+        session.pop('users')
+
+    # Also clear the Flask-Login session
     logout_user()
+
+    # Force session modification flag
+    session.modified = True
+
+    print(f"Session after logout: {session}")
+
+    # Redirect to home page
     return redirect('/')
 
 @app.route('/user')
 def get_user():
-    if current_user.is_authenticated:
-        return jsonify({
-            'authenticated': True,
-            'name': current_user.name,
-            'email': current_user.email,
-            'profile_pic': current_user.profile_pic
-        })
-    else:
-        return jsonify({'authenticated': False})
+    print(f"Session data: {session}")
+    if 'users' in session:
+        # Get the first user in the session (we only support one user for now)
+        users = session.get('users', {})
+        print(f"Users in session: {users}")
+        if users:
+            user_id = next(iter(users))
+            user = users[user_id]
+            print(f"Returning user info: {user}")
+            return jsonify({
+                'authenticated': True,
+                'name': user.get('name', ''),
+                'email': user.get('email', ''),
+                'profile_pic': user.get('profile_pic', '')
+            })
+
+    print("No authenticated user found in session")
+    return jsonify({'authenticated': False})
 
 def get_text_hash(text, voice_id=DEFAULT_VOICE, rate=DEFAULT_RATE):
     """Generate a hash for the text, voice and rate combination"""
@@ -232,4 +295,10 @@ def synthesize_word():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Run with HTTPS using provided certificate and key
+    app.run(
+        debug=True,
+        ssl_context=('server.crt', 'server.key'),
+        host='0.0.0.0',  # Allow external access
+        port=5001
+    )
