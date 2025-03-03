@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const method = articleId ? 'PUT' : 'POST';
-        const url = articleId ? `/api/articles/${articleId}` : '/api/articles';
+        const url = articleId ? `/read-me-out/api/articles/${articleId}` : '/read-me-out/api/articles';
 
         fetch(url, {
             method: method,
