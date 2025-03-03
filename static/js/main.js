@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
             readButton.className = 'index-read-btn';
             readButton.innerHTML = '<i class="fas fa-book-reader"></i> 閱讀';
             readButton.addEventListener('click', () => {
-                window.location.href = `/?article_id=${article.id}`;
+                window.location.href = `${BASE_PATH}/?article_id=${article.id}`;
             });
 
             articleElement.appendChild(titleElement);
