@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function checkAuthStatus() {
         console.log('Checking authentication status');
-        fetch('/user')
+        fetch('/read-me-out/user')
             .then(response => response.json())
             .then(data => {
                 if (data.authenticated) {
@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentRate = getSelectedRate();
 
                 // Synthesize just this paragraph
-                fetch('/api/synthesize', {
+                fetch('/read-me-out/api/synthesize', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentRate = getSelectedRate();
 
                 // Synthesize just this word
-                fetch('/api/synthesize-word', {
+                fetch('/read-me-out/api/synthesize-word', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

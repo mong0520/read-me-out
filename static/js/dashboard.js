@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show loading spinner
         articlesList.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading articles...</div>';
 
-        fetch('/api/articles')
+        fetch('/read-me-out/api/articles')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Failed to load articles');
