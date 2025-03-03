@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (logoutLink) {
             logoutLink.addEventListener('click', function(e) {
                 e.preventDefault();
-                window.location.href = '/logout';
+                window.location.href = `${BASE_PATH}/logout`;
             });
         }
     }
