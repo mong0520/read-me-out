@@ -96,12 +96,14 @@ def load_user(user_id):
 @app.route('/')
 def index():
     article_id = request.args.get('article_id')
-    return render_template('index.html', article_id=article_id)
+    prefix = request.script_root
+    return render_template('index.html', article_id=article_id, prefix=prefix)
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html')
+    prefix = request.script_root
+    return render_template('dashboard.html', prefix=prefix)
 
 @app.route('/login')
 def login():
@@ -350,10 +352,12 @@ def synthesize_speech():
         # Synthesize and cache the audio
         text_hash = synthesize_and_cache(text, voice_id, rate)
 
-        # Return the URL to the audio file
+        prefix = request.script_root
+
+        # Return the URL to the audio file with the correct prefix
         return jsonify({
             'success': True,
-            'audio_url': f'/read-me-out/static/audio/{text_hash}.mp3'
+            'audio_url': f'{prefix}/static/audio/{text_hash}.mp3'
         })
 
     except Exception as e:
@@ -373,10 +377,13 @@ def synthesize_word():
         # Synthesize and cache the audio for the word
         text_hash = synthesize_and_cache(word, voice_id, rate)
 
-        # Return the URL to the audio file
+        # 使用 request.script_root 獲取 prefix
+        prefix = request.script_root
+
+        # Return the URL to the audio file with the correct prefix
         return jsonify({
             'success': True,
-            'audio_url': f'/read-me-out/static/audio/{text_hash}.mp3'
+            'audio_url': f'{prefix}/static/audio/{text_hash}.mp3'
         })
 
     except Exception as e:

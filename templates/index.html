@@ -6,8 +6,12 @@
     <title>Read Me Out - Text to Speech</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        // 定義全局變數
+        window.BASE_PATH = "{{ prefix }}";
+    </script>
 </head>
-<body>
+<body data-prefix="{{ prefix }}">
     <div class="overlay"></div>
 
     <!-- Hamburger Menu Button -->

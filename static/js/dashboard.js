@@ -4,7 +4,6 @@
  * This file handles the article management functionality in the dashboard,
  * including listing, creating, editing, and deleting articles.
  */
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard: DOM fully loaded');
 
@@ -27,66 +26,23 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Load articles from the server
      */
-    function loadArticles() {
+    async function loadArticles() {
         if (!articlesList) return;
 
         // Show loading spinner
         articlesList.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading articles...</div>';
 
-        fetch('/read-me-out/api/articles')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to load articles');
-                }
-                return response.json();
-            })
-            .then(articles => {
-                if (articles.length === 0) {
-                    // No articles found
-                    articlesList.innerHTML = '<div class="no-articles">You don\'t have any articles yet. Click "New Article" to create one.</div>';
-                    return;
-                }
-
-                // Clear articles list
-                articlesList.innerHTML = '';
-
-                // Add each article to the list
-                articles.forEach(article => {
-                    const articleElement = document.createElement('div');
-                    articleElement.className = 'article-item';
-                    articleElement.innerHTML = `
-                        <div class="article-header">
-                            <h3 class="article-title">${escapeHtml(article.title)}</h3>
-                            <div class="article-actions">
-                                <button class="btn btn-small btn-edit" data-id="${article.id}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-small btn-delete" data-id="${article.id}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                <button class="btn btn-small btn-read" data-id="${article.id}">
-                                    <i class="fas fa-book-reader"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="article-date">
-                            Last updated: ${new Date(article.updated_at).toLocaleString()}
-                        </div>
-                        <div class="article-preview">
-                            ${escapeHtml(article.content.substring(0, 150))}${article.content.length > 150 ? '...' : ''}
-                        </div>
-                    `;
-
-                    articlesList.appendChild(articleElement);
-                });
-
-                // Add event listeners to buttons
-                addArticleButtonListeners();
-            })
-            .catch(error => {
-                console.error('Error loading articles:', error);
-                articlesList.innerHTML = `<div class="error">Error loading articles: ${error.message}</div>`;
-            });
+        try {
+            const response = await fetch(`${BASE_PATH}/api/articles`);
+            if (!response.ok) {
+                throw new Error('Failed to load articles');
+            }
+            const articles = await response.json();
+            displayArticles(articles);
+        } catch (error) {
+            console.error('Error loading articles:', error);
+            articlesList.innerHTML = `<div class="error">Error loading articles: ${error.message}</div>`;
+        }
     }
 
     /**
@@ -113,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-read').forEach(button => {
             button.addEventListener('click', function() {
                 const articleId = this.getAttribute('data-id');
-                window.location.href = `/read-me-out/?article_id=${articleId}`;
+                window.location.href = `${BASE_PATH}/?article_id=${articleId}`;
             });
         });
     }
@@ -178,13 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
         articleModal.style.display = 'block';
 
         // Fetch article data
-        fetch(`/read-me-out/api/articles/${articleId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Article not found');
-                }
-                return response.json();
-            })
+        getArticle(articleId)
             .then(article => {
                 articleIdInput.value = article.id;
                 articleTitleInput.value = article.title;
@@ -222,62 +172,157 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const method = articleId ? 'PUT' : 'POST';
-        const url = articleId ? `/read-me-out/api/articles/${articleId}` : '/read-me-out/api/articles';
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                title: title,
-                content: content
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to save article');
-            }
-            return response.json();
-        })
-        .then(data => {
-            closeModalFunc();
-            loadArticles();
-        })
-        .catch(error => {
-            console.error('Error saving article:', error);
-            alert(`Error: ${error.message}`);
-        });
+        if (articleId) {
+            updateArticle(articleId, title, content);
+        } else {
+            createArticle(title, content);
+        }
     }
 
     /**
      * Delete an article
      * @param {string} articleId - The ID of the article to delete
      */
-    function deleteArticle(articleId) {
-        if (confirm('Are you sure you want to delete this article?')) {
-            fetch(`/read-me-out/api/articles/${articleId}`, {
-                method: 'DELETE'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to delete article');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    loadArticles();
-                } else {
-                    alert(`Error: ${data.error}`);
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting article:', error);
-                alert(`Error: ${error.message}`);
-            });
+    async function deleteArticle(articleId) {
+        if (!confirm('Are you sure you want to delete this article?')) {
+            return;
         }
+
+        try {
+            const response = await fetch(`${BASE_PATH}/api/articles/${articleId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete article');
+            }
+
+            await loadArticles();
+            showMessage('Article deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting article:', error);
+            showMessage('Error deleting article. Please try again.', 'error');
+        }
+    }
+
+    /**
+     * Get a single article
+     * @param {string} articleId - The ID of the article to get
+     * @returns {Promise<Object>} - The article data
+     */
+    async function getArticle(articleId) {
+        try {
+            const response = await fetch(`${BASE_PATH}/api/articles/${articleId}`);
+            if (!response.ok) {
+                throw new Error('Failed to load article');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading article:', error);
+            showMessage('Error loading article. Please try again.', 'error');
+            return null;
+        }
+    }
+
+    /**
+     * Create a new article
+     * @param {string} title - The title of the new article
+     * @param {string} content - The content of the new article
+     */
+    async function createArticle(title, content) {
+        try {
+            const response = await fetch(`${BASE_PATH}/api/articles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create article');
+            }
+
+            await loadArticles();
+            closeModal();
+            showMessage('Article created successfully!', 'success');
+        } catch (error) {
+            console.error('Error creating article:', error);
+            showMessage('Error creating article. Please try again.', 'error');
+        }
+    }
+
+    /**
+     * Update an article
+     * @param {string} id - The ID of the article to update
+     * @param {string} title - The new title of the article
+     * @param {string} content - The new content of the article
+     */
+    async function updateArticle(id, title, content) {
+        try {
+            const response = await fetch(`${BASE_PATH}/api/articles/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update article');
+            }
+
+            await loadArticles();
+            closeModal();
+            showMessage('Article updated successfully!', 'success');
+        } catch (error) {
+            console.error('Error updating article:', error);
+            showMessage('Error updating article. Please try again.', 'error');
+        }
+    }
+
+    /**
+     * Display articles in the articles list
+     * @param {Array<Object>} articles - The list of articles to display
+     */
+    function displayArticles(articles) {
+        if (articles.length === 0) {
+            // No articles found
+            articlesList.innerHTML = '<div class="no-articles">You don\'t have any articles yet. Click "New Article" to create one.</div>';
+            return;
+        }
+
+        // Clear articles list
+        articlesList.innerHTML = '';
+
+        // Add each article to the list
+        articles.forEach(article => {
+            const articleElement = document.createElement('div');
+            articleElement.className = 'article-item';
+            articleElement.innerHTML = `
+                <div class="article-header">
+                    <h3 class="article-title">${escapeHtml(article.title)}</h3>
+                    <div class="article-actions">
+                        <button class="btn btn-small btn-edit" data-id="${article.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-small btn-delete" data-id="${article.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="btn btn-small btn-read" data-id="${article.id}">
+                            <i class="fas fa-book-reader"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="article-date">
+                    Last updated: ${new Date(article.updated_at).toLocaleString()}
+                </div>
+                <div class="article-preview">
+                    ${escapeHtml(article.content.substring(0, 150))}${article.content.length > 150 ? '...' : ''}
+                </div>
+            `;
+
+            articlesList.appendChild(articleElement);
+        });
+
+        // Add event listeners to buttons
+        addArticleButtonListeners();
     }
 
     /**
@@ -292,5 +337,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
+    }
+
+    /**
+     * Show a message to the user
+     * @param {string} message - The message to show
+     * @param {string} type - The type of message (e.g., 'success', 'error')
+     */
+    function showMessage(message, type) {
+        // Implementation of showMessage function
     }
 });

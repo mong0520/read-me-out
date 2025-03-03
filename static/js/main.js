@@ -6,6 +6,10 @@
  * and hamburger menu/sidebar functionality.
  */
 
+// 從 body 元素獲取 prefix
+const BASE_PATH = document.body.getAttribute('data-prefix') || '';
+console.log('BASE_PATH in main.js:', BASE_PATH); // 用於調試
+
 // Wait for DOM to be fully loaded before executing code
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded');
@@ -43,46 +47,47 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Check user authentication status and update UI accordingly
      */
-    function checkAuthStatus() {
+    async function checkAuthStatus() {
         console.log('Checking authentication status');
-        fetch('/read-me-out/user')
-            .then(response => response.json())
-            .then(data => {
-                if (data.authenticated) {
-                    // User is authenticated
-                    console.log('User is authenticated:', data.name);
+        try {
+            console.log('Fetching user info from:', `${BASE_PATH}/user`); // 用於調試
+            const response = await fetch(`${BASE_PATH}/user`);
+            const data = await response.json();
 
-                    // Update main header
-                    if (userInfo) userInfo.style.display = 'flex';
-                    if (loginContainer) loginContainer.style.display = 'none';
-                    if (userPic) userPic.style.backgroundImage = `url(${data.profile_pic})`;
-                    if (userName) userName.textContent = data.name;
+            if (data.authenticated) {
+                // User is authenticated
+                console.log('User is authenticated:', data.name);
 
-                    // Show auth-required items
-                    if (authRequiredItems) {
-                        authRequiredItems.forEach(item => {
-                            item.style.display = 'block';
-                        });
-                    }
-                } else {
-                    // User is not authenticated
-                    console.log('User is not authenticated');
+                // Update main header
+                if (userInfo) userInfo.style.display = 'flex';
+                if (loginContainer) loginContainer.style.display = 'none';
+                if (userPic) userPic.style.backgroundImage = `url(${data.profile_pic})`;
+                if (userName) userName.textContent = data.name;
 
-                    // Update main header
-                    if (userInfo) userInfo.style.display = 'none';
-                    if (loginContainer) loginContainer.style.display = 'block';
-
-                    // Hide auth-required items
-                    if (authRequiredItems) {
-                        authRequiredItems.forEach(item => {
-                            item.style.display = 'none';
-                        });
-                    }
+                // Show auth-required items
+                if (authRequiredItems) {
+                    authRequiredItems.forEach(item => {
+                        item.style.display = 'block';
+                    });
                 }
-            })
-            .catch(error => {
-                console.error('Error checking authentication status:', error);
-            });
+            } else {
+                // User is not authenticated
+                console.log('User is not authenticated');
+
+                // Update main header
+                if (userInfo) userInfo.style.display = 'none';
+                if (loginContainer) loginContainer.style.display = 'block';
+
+                // Hide auth-required items
+                if (authRequiredItems) {
+                    authRequiredItems.forEach(item => {
+                        item.style.display = 'none';
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching user info:', error);
+        }
     }
 
     /**
@@ -217,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentRate = getSelectedRate();
 
                 // Synthesize just this paragraph
-                fetch('/read-me-out/api/synthesize', {
+                fetch(`${BASE_PATH}/api/synthesize`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -260,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentRate = getSelectedRate();
 
                 // Synthesize just this word
-                fetch('/read-me-out/api/synthesize-word', {
+                fetch(`${BASE_PATH}/api/synthesize-word`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -306,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Loading article from URL:', articleId);
             currentArticleId = articleId;
 
-            fetch(`/read-me-out/api/articles/${articleId}`)
+            fetch(`${BASE_PATH}/api/articles/${articleId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Article not found');
