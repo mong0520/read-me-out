@@ -360,6 +360,74 @@ textarea:focus {
     color: #333;
 }
 
+/* 文章列表區塊樣式 */
+.articles-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.articles-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.articles-list-readonly {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.article-item {
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.article-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.article-item h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.article-date {
+    color: #777;
+    font-size: 0.85em;
+    margin-bottom: 10px;
+}
+
+.read-btn {
+    width: 100%;
+    padding: 6px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.9em;
+}
+
+.read-btn:hover {
+    background-color: #3367d6;
+}
+
+/* 確保 auth-required 類別在未登入時隱藏 */
+.auth-required {
+    display: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .container {
@@ -380,4 +448,88 @@ textarea:focus {
         top: 15px;
         left: 15px;
     }
+}
+
+/* 首頁文章列表區塊樣式 */
+.index-articles-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.index-articles-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.index-articles-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.index-article-item {
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.index-article-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.index-article-item h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.index-article-date {
+    color: #777;
+    font-size: 0.85em;
+    margin-bottom: 10px;
+}
+
+.index-read-btn {
+    width: 100%;
+    padding: 6px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.9em;
+}
+
+.index-read-btn:hover {
+    background-color: #3367d6;
+}
+
+.index-no-articles {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #777;
+    padding: 20px;
+}
+
+.index-error-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #d32f2f;
+    padding: 20px;
+}
+
+.index-loading-spinner {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #777;
+    padding: 20px;
 }

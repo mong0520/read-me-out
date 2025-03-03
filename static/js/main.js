@@ -48,45 +48,51 @@ document.addEventListener('DOMContentLoaded', function() {
      * Check user authentication status and update UI accordingly
      */
     async function checkAuthStatus() {
-        console.log('Checking authentication status');
         try {
-            console.log('Fetching user info from:', `${BASE_PATH}/user`); // 用於調試
             const response = await fetch(`${BASE_PATH}/user`);
             const data = await response.json();
 
+            const userInfo = document.querySelector('.user-info');
+            const loginContainer = document.querySelector('.login-container');
+            const authRequiredElements = document.querySelectorAll('.auth-required');
+
             if (data.authenticated) {
-                // User is authenticated
-                console.log('User is authenticated:', data.name);
-
-                // Update main header
-                if (userInfo) userInfo.style.display = 'flex';
-                if (loginContainer) loginContainer.style.display = 'none';
-                if (userPic) userPic.style.backgroundImage = `url(${data.profile_pic})`;
-                if (userName) userName.textContent = data.name;
-
-                // Show auth-required items
-                if (authRequiredItems) {
-                    authRequiredItems.forEach(item => {
-                        item.style.display = 'block';
-                    });
+                // 更新用戶資訊
+                if (userInfo) {
+                    const userPic = userInfo.querySelector('.user-pic');
+                    const userName = userInfo.querySelector('.user-name');
+                    if (userPic) userPic.style.backgroundImage = `url(${data.profile_pic})`;
+                    if (userName) userName.textContent = data.name;
+                    userInfo.style.display = 'flex';
                 }
-            } else {
-                // User is not authenticated
-                console.log('User is not authenticated');
 
-                // Update main header
+                // 隱藏登入按鈕
+                if (loginContainer) {
+                    loginContainer.style.display = 'none';
+                }
+
+                // 顯示需要登入的元素
+                authRequiredElements.forEach(element => {
+                    element.style.display = 'block';
+                });
+
+                // 載入文章列表
+                loadArticles();
+
+                // 設置登出按鈕事件
+                setupLogoutButton();
+            } else {
+                // 隱藏用戶資訊，顯示登入按鈕
                 if (userInfo) userInfo.style.display = 'none';
                 if (loginContainer) loginContainer.style.display = 'block';
 
-                // Hide auth-required items
-                if (authRequiredItems) {
-                    authRequiredItems.forEach(item => {
-                        item.style.display = 'none';
-                    });
-                }
+                // 隱藏需要登入的元素
+                authRequiredElements.forEach(element => {
+                    element.style.display = 'none';
+                });
             }
         } catch (error) {
-            console.error('Error fetching user info:', error);
+            console.error('Error checking auth status:', error);
         }
     }
 
@@ -334,6 +340,78 @@ document.addEventListener('DOMContentLoaded', function() {
                         statusMessage.className = 'error';
                     }
                 });
+        }
+    }
+
+    // 載入文章列表
+    async function loadArticles() {
+        const articlesList = document.getElementById('index-articles-list');
+        if (!articlesList) return;
+
+        try {
+            articlesList.innerHTML = '<div class="index-loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading articles...</div>';
+
+            const response = await fetch(`${BASE_PATH}/api/articles`);
+            if (!response.ok) {
+                throw new Error('Failed to load articles');
+            }
+
+            const articles = await response.json();
+
+            if (articles.length === 0) {
+                articlesList.innerHTML = '<p class="index-no-articles">No articles found. Go to "My Articles" to create some.</p>';
+                return;
+            }
+
+            // 顯示文章列表（只讀模式）
+            displayArticlesList(articles);
+        } catch (error) {
+            console.error('Error loading articles:', error);
+            articlesList.innerHTML = '<p class="index-error-message">Error loading articles. Please try again.</p>';
+        }
+    }
+
+    // 顯示文章列表（只讀模式）
+    function displayArticlesList(articles) {
+        const articlesList = document.getElementById('index-articles-list');
+        if (!articlesList) return;
+
+        articlesList.innerHTML = '';
+
+        articles.forEach(article => {
+            const articleElement = document.createElement('div');
+            articleElement.className = 'index-article-item';
+
+            const titleElement = document.createElement('h4');
+            titleElement.textContent = article.title;
+
+            const dateElement = document.createElement('p');
+            dateElement.className = 'index-article-date';
+            const createdDate = new Date(article.created_at);
+            dateElement.textContent = `${createdDate.toLocaleDateString()}`;
+
+            const readButton = document.createElement('button');
+            readButton.className = 'index-read-btn';
+            readButton.innerHTML = '<i class="fas fa-book-reader"></i> 閱讀';
+            readButton.addEventListener('click', () => {
+                window.location.href = `/?article_id=${article.id}`;
+            });
+
+            articleElement.appendChild(titleElement);
+            articleElement.appendChild(dateElement);
+            articleElement.appendChild(readButton);
+
+            articlesList.appendChild(articleElement);
+        });
+    }
+
+    // 設置登出按鈕事件
+    function setupLogoutButton() {
+        if (logoutLink) {
+            logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = `${BASE_PATH}/logout`;
+            });
         }
     }
 });
