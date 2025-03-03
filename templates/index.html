@@ -29,8 +29,8 @@
         </div>
         <div class="sidebar-content">
             <ul class="sidebar-menu">
-                <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
-                <li class="auth-required"><a href="/dashboard"><i class="fas fa-book"></i> My Articles</a></li>
+                <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a></li>
+                <li class="auth-required"><a href="{{ url_for('dashboard') }}"><i class="fas fa-book"></i> My Articles</a></li>
             </ul>
         </div>
     </div>
@@ -45,7 +45,7 @@
                     <a href="#" id="logout-link" class="logout-btn">Logout</a>
                 </div>
                 <div class="login-container">
-                    <a href="/login" class="login-btn">
+                    <a href="{{ url_for('login') }}" class="login-btn">
                         <i class="fab fa-google"></i> Sign in with Google
                     </a>
                 </div>

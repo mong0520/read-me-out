@@ -10,11 +10,13 @@ from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key')
 CORS(app)
 
@@ -82,7 +84,7 @@ google = oauth.register(
     client_kwargs={
         'scope': 'openid email profile'
     },
-    redirect_uri='https://localhost:5001/authorize',
+    redirect_uri='https://www.nt1.dev/read-me-out/authorize',
     userinfo_endpoint='https://www.googleapis.com/oauth2/v3/userinfo'
 )
 
@@ -103,7 +105,7 @@ def dashboard():
 
 @app.route('/login')
 def login():
-    redirect_uri = url_for('authorize', _external=True)
+    redirect_uri = url_for('authorize', _external=True, _scheme='https')
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize')
@@ -163,7 +165,8 @@ def authorize():
         db.session.commit()
         login_user(user)
 
-        return redirect('/')
+        return redirect(url_for('index'))
+
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -172,7 +175,8 @@ def authorize():
 def logout():
     print("Logout route called")
     logout_user()
-    return redirect('/')
+    return redirect(url_for('index'))
+
 
 @app.route('/user')
 def get_user():
