@@ -353,7 +353,7 @@ def synthesize_speech():
         # Return the URL to the audio file
         return jsonify({
             'success': True,
-            'audio_url': f'/static/audio/{text_hash}.mp3'
+            'audio_url': f'/read-me-out/static/audio/{text_hash}.mp3'
         })
 
     except Exception as e:
@@ -376,7 +376,7 @@ def synthesize_word():
         # Return the URL to the audio file
         return jsonify({
             'success': True,
-            'audio_url': f'/static/audio/{text_hash}.mp3'
+            'audio_url': f'/read-me-out/static/audio/{text_hash}.mp3'
         })
 
     except Exception as e:
