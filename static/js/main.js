@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Loading article from URL:', articleId);
             currentArticleId = articleId;
 
-            fetch(`/api/articles/${articleId}`)
+            fetch(`/read-me-out/api/articles/${articleId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Article not found');

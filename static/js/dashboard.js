@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-read').forEach(button => {
             button.addEventListener('click', function() {
                 const articleId = this.getAttribute('data-id');
-                window.location.href = `/?article_id=${articleId}`;
+                window.location.href = `/read-me-out/?article_id=${articleId}`;
             });
         });
     }
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
         articleModal.style.display = 'block';
 
         // Fetch article data
-        fetch(`/api/articles/${articleId}`)
+        fetch(`/read-me-out/api/articles/${articleId}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Article not found');
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function deleteArticle(articleId) {
         if (confirm('Are you sure you want to delete this article?')) {
-            fetch(`/api/articles/${articleId}`, {
+            fetch(`/read-me-out/api/articles/${articleId}`, {
                 method: 'DELETE'
             })
             .then(response => {
