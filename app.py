@@ -286,7 +286,7 @@ def update_article(article_id):
     # 檢查是否為免費用戶
     if current_user.level == 0:
         # 檢查編輯次數
-        if current_user.edit_count >= 3:
+        if current_user.edit_count >= 5:
             return jsonify({'error': 'Free users can only edit 3 times'}), 403
 
         # 檢查內容長度
