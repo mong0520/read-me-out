@@ -35,6 +35,8 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     profile_pic = db.Column(db.String(1024))
+    level = db.Column(db.Integer, default=0)  # 添加 level 欄位，預設為 0 (free)
+    edit_count = db.Column(db.Integer, default=0)  # 添加編輯次數計數
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     articles = db.relationship('Article', backref='author', lazy=True)
@@ -225,6 +227,18 @@ def get_article(article_id):
 @app.route('/api/articles', methods=['POST'])
 @login_required
 def create_article():
+    # 檢查是否為免費用戶
+    if current_user.level == 0:
+        # 檢查現有文章數量
+        article_count = Article.query.filter_by(user_id=current_user.id).count()
+        if article_count >= 1:
+            return jsonify({'error': 'Free users can only create one article'}), 403
+
+        # 檢查內容長度
+        content = request.json.get('content', '')
+        if len(content) > 300:
+            return jsonify({'error': 'Free users are limited to 300 characters'}), 403
+
     data = request.json
     title = data.get('title', '')
     content = data.get('content', '')
@@ -256,6 +270,21 @@ def update_article(article_id):
     if not article:
         return jsonify({'error': 'Article not found'}), 404
 
+    # 檢查是否為免費用戶
+    if current_user.level == 0:
+        # 檢查編輯次數
+        if current_user.edit_count >= 3:
+            return jsonify({'error': 'Free users can only edit 3 times'}), 403
+
+        # 檢查內容長度
+        content = request.json.get('content', '')
+        if len(content) > 300:
+            return jsonify({'error': 'Free users are limited to 300 characters'}), 403
+
+        # 增加編輯次數
+        current_user.edit_count += 1
+        db.session.add(current_user)
+
     data = request.json
     title = data.get('title')
     content = data.get('content')
@@ -278,6 +307,10 @@ def update_article(article_id):
 @app.route('/api/articles/<int:article_id>', methods=['DELETE'])
 @login_required
 def delete_article(article_id):
+    # 檢查是否為免費用戶
+    if current_user.level == 0:
+        return jsonify({'error': 'Free users cannot delete articles'}), 403
+
     article = Article.query.filter_by(id=article_id, user_id=current_user.id).first()
     if not article:
         return jsonify({'error': 'Article not found'}), 404
