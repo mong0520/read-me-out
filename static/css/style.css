@@ -533,3 +533,30 @@ textarea:focus {
     color: #777;
     padding: 20px;
 }
+
+.user-info-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 15px;
+}
+
+.user-plan-label {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.user-plan-label.free {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+}
+
+.user-plan-label.standard {
+    background-color: #fff8e6;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}

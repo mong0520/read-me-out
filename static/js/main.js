@@ -61,8 +61,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (userInfo) {
                     const userPic = userInfo.querySelector('.user-pic');
                     const userName = userInfo.querySelector('.user-name');
+                    const planLabel = userInfo.querySelector('.user-plan-label');
+
                     if (userPic) userPic.style.backgroundImage = `url(${data.profile_pic})`;
                     if (userName) userName.textContent = data.name;
+                    if (planLabel) {
+                        planLabel.textContent = data.level === 1 ? 'Standard' : 'Free';
+                        planLabel.className = `user-plan-label ${data.level === 1 ? 'standard' : 'free'}`;
+                    }
+
                     userInfo.style.display = 'flex';
                 }
 

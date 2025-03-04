@@ -158,7 +158,7 @@ def authorize():
                     title="A very hungry caterpillar",
                     content="""In the light of the moon a little egg lay on a leaf.
 One Sunday morning the warm sun came up and - pop! - out of the egg came a tiny and very hungry caterpillar.
-He started to look for some food. I’m so HUNGRY!
+He started to look for some food. I'm so HUNGRY!
 On Monday he ate through 1 apple. But he was still hungry.
 On Tuesday he ate through 2 pears, but he was still hungry.
 On Wednesday he ate through 3 plums, but he was still hungry.
@@ -200,7 +200,8 @@ def get_user():
             'id': current_user.id,
             'name': current_user.name,
             'email': current_user.email,
-            'profile_pic': current_user.profile_pic
+            'profile_pic': current_user.profile_pic,
+            'level': current_user.level
         })
     return jsonify({'authenticated': False})
 
