@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables
@@ -24,6 +24,8 @@ CORS(app)
 print(os.getenv('DATABASE_URL', 'mysql+pymysql://readmeout:readmeoutpass@localhost:3307/read_me_out'))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql+pymysql://readmeout:readmeoutpass@localhost:3307/read_me_out')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 設定 session 效期為 7 天
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)    # 設定 remember cookie 效期為 7 天
 db = SQLAlchemy(app)
 
 # Define database models
@@ -165,7 +167,7 @@ def authorize():
             db.session.add(user)
 
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
 
         return redirect(url_for('index'))
 
