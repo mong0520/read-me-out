@@ -11,6 +11,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_migrate import Migrate
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +28,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 設定 session 效期為 7 天
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)    # 設定 remember cookie 效期為 7 天
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Define database models
 class User(UserMixin, db.Model):
