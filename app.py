@@ -144,12 +144,14 @@ def authorize():
                 user.email = user_info.get('email', '')
                 user.profile_pic = user_info.get('picture', '')
             else:
-                # Create new user
+                # Create new user with default values
                 user = User(
                     id=user_id,
                     name=user_info.get('name', user_info.get('given_name', '')),
                     email=user_info.get('email', ''),
-                    profile_pic=user_info.get('picture', '')
+                    profile_pic=user_info.get('picture', ''),
+                    level=0,  # 設置預設 level 為 0 (free)
+                    edit_count=0  # 設置預設 edit_count 為 0
                 )
                 db.session.add(user)
                 db.session.commit()  # 先提交用戶以獲得 user.id
