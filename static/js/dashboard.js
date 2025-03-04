@@ -194,6 +194,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!response.ok) {
+                const errorData = await response.json();
+                if (response.status === 403) {
+                    // 處理免費用戶限制錯誤
+                    showMessage(errorData.error, 'error');
+                    return;
+                }
                 throw new Error('Failed to delete article');
             }
 
@@ -238,11 +244,18 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!response.ok) {
+                const errorData = await response.json();
+                if (response.status === 403) {
+                    // 處理免費用戶限制錯誤
+                    showMessage(errorData.error, 'error');
+                    closeModalFunc();
+                    return;
+                }
                 throw new Error('Failed to create article');
             }
 
             await loadArticles();
-            closeModal();
+            closeModalFunc();
             showMessage('Article created successfully!', 'success');
         } catch (error) {
             console.error('Error creating article:', error);
@@ -264,16 +277,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({ title, content })
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
+                if (response.status === 403) {
+                    showMessage(data.error, 'error');
+                    closeModalFunc();
+                    return;
+                }
                 throw new Error('Failed to update article');
             }
 
             await loadArticles();
-            closeModal();
-            showMessage('Article updated successfully!', 'success');
+            closeModalFunc();
+
+            // 檢查是否有剩餘編輯次數信息
+            if (data.remaining_edits !== undefined) {
+                const message = `更新成功！剩餘 ${data.remaining_edits} 次編輯機會`;
+                showMessage(message, 'warning');
+            } else {
+                showMessage('更新成功！', 'success');
+            }
+
         } catch (error) {
             console.error('Error updating article:', error);
-            showMessage('Error updating article. Please try again.', 'error');
+            showMessage('更新失敗，請稍後再試。', 'error');
         }
     }
 
@@ -342,9 +370,50 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Show a message to the user
      * @param {string} message - The message to show
-     * @param {string} type - The type of message (e.g., 'success', 'error')
+     * @param {string} type - The type of message ('success', 'error', 'warning')
      */
     function showMessage(message, type) {
-        // Implementation of showMessage function
+        // 移除現有的消息（如果有的話）
+        const existingMessage = document.querySelector('.message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        const messageContainer = document.createElement('div');
+        messageContainer.className = `message message-${type}`;
+
+        // 創建圖標元素
+        const icon = document.createElement('i');
+        switch (type) {
+            case 'success':
+                icon.className = 'fas fa-check-circle';
+                break;
+            case 'error':
+                icon.className = 'fas fa-exclamation-circle';
+                break;
+            case 'warning':
+                icon.className = 'fas fa-exclamation-triangle';
+                break;
+        }
+
+        // 創建文字元素
+        const textSpan = document.createElement('span');
+        textSpan.textContent = message;
+
+        // 將圖標和文字添加到消息容器
+        messageContainer.appendChild(icon);
+        messageContainer.appendChild(textSpan);
+
+        // 添加到頁面
+        const container = document.querySelector('.dashboard-container');
+        container.insertBefore(messageContainer, container.firstChild);
+
+        // 3秒後自動移除
+        setTimeout(() => {
+            messageContainer.classList.add('message-fade-out');
+            setTimeout(() => {
+                messageContainer.remove();
+            }, 300);
+        }, 3000);
     }
 });

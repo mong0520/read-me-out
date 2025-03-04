@@ -120,7 +120,6 @@ def authorize():
         token = google.authorize_access_token()
         print(f"Received token: {token}")
 
-        # Use the token to get user info
         try:
             resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo', token=token)
             print(f"API Response status: {resp.status_code}")
@@ -133,46 +132,55 @@ def authorize():
 
             user_info = resp.json()
             print(f"Parsed user info: {user_info}")
+
+            user_id = user_info['sub']
+            user = User.query.get(user_id)
+
+            if user:
+                # Update existing user
+                user.name = user_info.get('name', user_info.get('given_name', ''))
+                user.email = user_info.get('email', '')
+                user.profile_pic = user_info.get('picture', '')
+            else:
+                # Create new user
+                user = User(
+                    id=user_id,
+                    name=user_info.get('name', user_info.get('given_name', '')),
+                    email=user_info.get('email', ''),
+                    profile_pic=user_info.get('picture', '')
+                )
+                db.session.add(user)
+                db.session.commit()  # 先提交用戶以獲得 user.id
+
+                # 為新用戶創建示範文章
+                demo_article = Article(
+                    user_id=user.id,
+                    title="A very hungry caterpillar",
+                    content="""In the light of the moon a little egg lay on a leaf.
+One Sunday morning the warm sun came up and - pop! - out of the egg came a tiny and very hungry caterpillar.
+He started to look for some food. I’m so HUNGRY!
+On Monday he ate through 1 apple. But he was still hungry.
+On Tuesday he ate through 2 pears, but he was still hungry.
+On Wednesday he ate through 3 plums, but he was still hungry.
+On Thursday he ate through 4 strawberries, but he was still hungry.
+On Friday he ate through 5 oranges, but he was still hungry.
+On Saturday he ate through 1 piece of chocolate cake , 1 icecream cone, 1 pickle,One slice of Swiss cheese, 1 slice of salami, 1 lollipop, 1 piece of cherry pie, 1 sausage, 1 cupcake, And 1 slice of watermelon.
+That night he had a stomachache!
+The very hungry caterpillar then ate through one green leaf. He started to feel better.
+Now, the caterpillar was no longer small. He was a big, fat, caterpillar. little BIG
+He built a small house, called a cocoon around himself. He stayed inside for more than 2 weeks. Then he nibbled a small hole in the cocoon, pushed his way out and…
+A Beautiful Butterfly!"""
+                )
+                db.session.add(demo_article)
+
+            db.session.commit()
+            login_user(user, remember=True)
+
+            return redirect(url_for('index'))
+
         except Exception as e:
             print(f"Exception while getting user info: {str(e)}")
             return f"Error getting user info: {str(e)}", 400
-
-        # Check if we have valid user info
-        if not user_info:
-            print(f"Invalid user info received: {user_info}")
-            return 'Invalid user info: empty response', 400
-
-        # Google OAuth2 uses 'sub' as the unique identifier, not 'id'
-        if 'sub' not in user_info:
-            print(f"Invalid user info: missing 'sub' field: {user_info}")
-            return 'Invalid user info: missing sub field', 400
-
-        print(f"Successfully retrieved user info: {user_info}")
-
-        # Check if user exists in database
-        user_id = user_info['sub']
-        user = User.query.get(user_id)
-
-        if user:
-            # Update existing user
-            user.name = user_info.get('name', user_info.get('given_name', ''))
-            user.email = user_info.get('email', '')
-            user.profile_pic = user_info.get('picture', '')
-        else:
-            # Create new user
-            user = User(
-                id=user_id,
-                name=user_info.get('name', user_info.get('given_name', '')),
-                email=user_info.get('email', ''),
-                profile_pic=user_info.get('picture', '')
-            )
-            db.session.add(user)
-
-        db.session.commit()
-        login_user(user, remember=True)
-
-        return redirect(url_for('index'))
-
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -231,7 +239,7 @@ def create_article():
     if current_user.level == 0:
         # 檢查現有文章數量
         article_count = Article.query.filter_by(user_id=current_user.id).count()
-        if article_count >= 1:
+        if article_count >= 2:
             return jsonify({'error': 'Free users can only create one article'}), 403
 
         # 檢查內容長度
@@ -296,13 +304,21 @@ def update_article(article_id):
 
     db.session.commit()
 
-    return jsonify({
+    # 返回剩餘編輯次數（如果是免費用戶）
+    response_data = {
         'id': article.id,
         'title': article.title,
         'content': article.content,
         'created_at': article.created_at.isoformat(),
         'updated_at': article.updated_at.isoformat()
-    })
+    }
+
+    if current_user.level == 0:
+        remaining_edits = 3 - current_user.edit_count
+        response_data['remaining_edits'] = remaining_edits
+        response_data['message'] = f'Article updated successfully! You have {remaining_edits} edits remaining.'
+
+    return jsonify(response_data)
 
 @app.route('/api/articles/<int:article_id>', methods=['DELETE'])
 @login_required
