@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements - Text to Speech
     const speedOptions = document.querySelectorAll('input[name="speed"]');
     const textDisplay = document.getElementById('text-display');
-    const statusMessage = document.getElementById('status-message');
+    // const statusMessage = document.getElementById('status-message');
 
     // 保存當前加載的文章內容
     let currentArticleContent = '';
@@ -187,10 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function processTextToSpeech(text) {
         // 顯示處理中狀態
-        if (statusMessage) {
-            statusMessage.textContent = '正在轉換...';
-            statusMessage.className = 'info';
-        }
+        // if (statusMessage) {
+        //     statusMessage.textContent = '正在轉換...';
+        //     statusMessage.className = 'info';
+        // }
 
         // Split text into paragraphs
         const paragraphs = text.split(/\n+/).filter(p => p.trim() !== '');
@@ -210,10 +210,64 @@ document.addEventListener('DOMContentLoaded', function() {
             words.forEach((word, wordIndex) => {
                 const span = document.createElement('span');
                 span.className = 'word';
-                span.textContent = word + ' ';
+                span.textContent = word;
                 span.dataset.index = wordIndex;
-                span.dataset.word = word; // Store word text for later use
+                span.dataset.word = word;
+
+                // 添加滑鼠事件
+                span.addEventListener('mouseenter', async function(e) {
+                    // 檢查是否啟用翻譯
+                    const showTranslation = document.getElementById('show-translation').checked;
+                    if (!showTranslation) return;
+
+                    // 移除所有現有的 tooltips
+                    document.querySelectorAll('.word-tooltip').forEach(t => t.remove());
+
+                    // 檢查是否已經有翻譯
+                    if (!this.dataset.translation) {
+                        try {
+                            const response = await fetch(`${BASE_PATH}/api/translate`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ word: word })
+                            });
+                            const data = await response.json();
+                            if (data.translation) {
+                                this.dataset.translation = data.translation;
+                            }
+                        } catch (error) {
+                            console.error('Translation error:', error);
+                        }
+                    }
+
+                    // 顯示 tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'word-tooltip';
+                    tooltip.textContent = this.dataset.translation || '翻譯中...';
+
+                    // 計算位置
+                    const rect = this.getBoundingClientRect();
+                    tooltip.style.left = `${rect.left}px`;
+                    tooltip.style.top = `${rect.bottom + 5}px`;
+
+                    document.body.appendChild(tooltip);
+                    this.tooltip = tooltip;
+                });
+
+                span.addEventListener('mouseleave', function(e) {
+                    if (this.tooltip) {
+                        this.tooltip.remove();
+                        this.tooltip = null;
+                    }
+                });
+
                 p.appendChild(span);
+
+                // 在每個單字後面加入空格
+                const space = document.createTextNode(' ');
+                p.appendChild(space);
             });
 
             textDisplay.appendChild(p);
@@ -307,10 +361,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // 顯示完成狀態
-        if (statusMessage) {
-            statusMessage.textContent = '轉換完成！點擊段落或單詞進行朗讀。';
-            statusMessage.className = 'success';
-        }
+        // if (statusMessage) {
+        //     statusMessage.textContent = '轉換完成！點擊段落或單詞進行朗讀。';
+        //     statusMessage.className = 'success';
+        // }
     }
 
     /**
@@ -342,10 +396,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch(error => {
                     console.error('Error loading article:', error);
-                    if (statusMessage) {
-                        statusMessage.textContent = 'Error loading article: ' + error.message;
-                        statusMessage.className = 'error';
-                    }
+                    // if (statusMessage) {
+                    //     statusMessage.textContent = 'Error loading article: ' + error.message;
+                    //     statusMessage.className = 'error';
+                    // }
                 });
         }
     }

@@ -67,23 +67,32 @@
                     <span>慢</span>
                 </label>
                 <label class="speed-option">
-                    <input type="radio" name="speed" value="0.8" id="speed-medium">
+                    <input type="radio" name="speed" value="0.8" id="speed-medium" checked>
                     <span>稍慢</span>
                 </label>
                 <label class="speed-option">
-                    <input type="radio" name="speed" value="1.0" id="speed-normal" checked>
+                    <input type="radio" name="speed" value="1.0" id="speed-normal">
                     <span>正常</span>
+                </label>
+            </div>
+
+            <!-- 添加翻譯控制 -->
+            <div class="translation-control">
+                <h3>翻譯設定</h3>
+                <label class="translation-toggle">
+                    <input type="checkbox" id="show-translation" checked>
+                    <span>顯示單字翻譯</span>
                 </label>
             </div>
         </div>
 
         <!-- 文章列表區塊 - 只有登入用戶才能看到 -->
+        {% if not article_id %}
         <div id="index-articles-section" class="index-articles-section auth-required">
             <h3>我的文章</h3>
             <div id="index-articles-list" class="index-articles-list"></div>
         </div>
-
-        <div id="status-message"></div>
+        {% endif %}
 
         <div id="text-display"></div>
     </div>

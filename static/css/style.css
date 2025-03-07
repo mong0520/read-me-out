@@ -285,15 +285,36 @@ textarea:focus {
 }
 
 .word {
-    display: inline-block;
     cursor: pointer;
-    padding: 2px;
-    border-radius: 2px;
-    transition: background-color 0.2s;
+    position: relative;
+    display: inline-block;
 }
 
 .word:hover {
-    background-color: #e0e0e0;
+    background-color: #fff9c4;
+}
+
+.word-tooltip {
+    position: fixed;
+    background-color: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 1000;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.word-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 5px 5px 5px;
+    border-style: solid;
+    border-color: transparent transparent #333 transparent;
 }
 
 /* Status Messages */
@@ -559,4 +580,20 @@ textarea:focus {
     background-color: #fff8e6;
     color: #856404;
     border: 1px solid #ffeeba;
+}
+
+.translation-control {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.translation-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.translation-toggle input[type="checkbox"] {
+    margin-right: 8px;
 }

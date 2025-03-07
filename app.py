@@ -12,6 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_migrate import Migrate
+from deep_translator import GoogleTranslator
 
 # Load environment variables
 load_dotenv()
@@ -448,6 +449,24 @@ def synthesize_word():
 # Create database tables
 with app.app_context():
     db.create_all()
+
+@app.route('/api/translate', methods=['POST'])
+def translate_word():
+    try:
+        word = request.json.get('word', '')
+        if not word:
+            return jsonify({'error': 'No word provided'}), 400
+
+        # 使用 deep_translator 進行翻譯
+        translated = GoogleTranslator(source='en', target='zh-TW').translate(word)
+
+        return jsonify({
+            'success': True,
+            'translation': translated
+        })
+    except Exception as e:
+        print(f"Translation error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Run with HTTPS using provided certificate and key
