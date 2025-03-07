@@ -325,7 +325,11 @@ document.addEventListener('DOMContentLoaded', function() {
             articleElement.className = 'article-item';
             articleElement.innerHTML = `
                 <div class="article-header">
-                    <h3 class="article-title">${escapeHtml(article.title)}</h3>
+                    <h3 class="article-title">
+                        <a href="${BASE_PATH}/?article_id=${article.id}" class="article-link">
+                            ${escapeHtml(article.title)}
+                        </a>
+                    </h3>
                     <div class="article-actions">
                         <button class="btn btn-small btn-edit" data-id="${article.id}">
                             <i class="fas fa-edit"></i>

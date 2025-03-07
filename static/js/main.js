@@ -192,18 +192,29 @@ document.addEventListener('DOMContentLoaded', function() {
         //     statusMessage.className = 'info';
         // }
 
-        // Split text into paragraphs
-        const paragraphs = text.split(/\n+/).filter(p => p.trim() !== '');
-
-        // Clear previous text display
+        // 清除先前的內容
         textDisplay.innerHTML = '';
+
+        // 創建標題元素
+        const titleElement = document.createElement('h2');
+        titleElement.className = 'article-title';
+        titleElement.textContent = text.title || 'Untitled';  // 使用傳入的 text 物件
+        textDisplay.appendChild(titleElement);
+
+        // 添加標題和內容之間的分隔
+        // const divider = document.createElement('div');
+        // divider.className = 'article-divider';
+        // textDisplay.appendChild(divider);
+
+        // Split text into paragraphs
+        const paragraphs = text.content.split(/\n+/).filter(p => p.trim() !== '');  // 使用 text.content
 
         // Create paragraph elements
         paragraphs.forEach((paragraph, index) => {
             const p = document.createElement('div');
             p.className = 'paragraph';
             p.dataset.index = index;
-            p.dataset.text = paragraph; // Store paragraph text for later use
+            p.dataset.text = paragraph;
 
             // Split paragraph into words
             const words = paragraph.split(/\s+/).filter(w => w !== '');
@@ -392,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentArticleContent = article.content;
 
                     // 處理文章內容
-                    processTextToSpeech(currentArticleContent);
+                    processTextToSpeech(article);
                 })
                 .catch(error => {
                     console.error('Error loading article:', error);
