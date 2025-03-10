@@ -1,20 +1,22 @@
 version: '3.8'
 
 services:
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: read-me-out-mysql
+  db:
+    image: postgres:13
+    container_name: read-me-out-db
     restart: always
+    platform: linux/arm64/v8
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: read_me_out
-    ports:
-      - "3307:3306"
+      POSTGRES_USER: readmeout
+      POSTGRES_PASSWORD: readmeoutpass
+      POSTGRES_DB: read_me_out
+      # 如果需要創建多個資料庫
+      # POSTGRES_MULTIPLE_DATABASES: read_me_out,read_me_out_test
     volumes:
-      - mysql-data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d
-    command: --default-authentication-plugin=mysql_native_password
+      - db-data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d  # 添加初始化腳本目錄
+    ports:
+      - 5432:5432
 
 volumes:
-  mysql-data:
+  db-data:

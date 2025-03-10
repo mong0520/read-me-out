@@ -154,9 +154,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // 添加語音速度變更事件監聽器
         speedOptions.forEach(option => {
             option.addEventListener('change', function() {
-                // 如果有當前文章內容，則使用新的速度重新轉換
-                if (currentArticleContent) {
-                    processTextToSpeech(currentArticleContent);
+                // 如果有當前文章內容和ID，重新獲取文章內容
+                if (currentArticleId) {
+                    fetch(`${BASE_PATH}/api/articles/${currentArticleId}`)
+                        .then(response => response.json())
+                        .then(article => {
+                            processTextToSpeech(article);
+                        })
+                        .catch(error => {
+                            console.error('Error reloading article:', error);
+                        });
                 }
             });
         });

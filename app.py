@@ -23,8 +23,8 @@ app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key')
 CORS(app)
 
 # Configure database
-print(os.getenv('DATABASE_URL', 'mysql+pymysql://readmeout:readmeoutpass@localhost:3307/read_me_out'))
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql+pymysql://readmeout:readmeoutpass@localhost:3307/read_me_out')
+DATABASE_URL = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 設定 session 效期為 7 天
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)    # 設定 remember cookie 效期為 7 天
